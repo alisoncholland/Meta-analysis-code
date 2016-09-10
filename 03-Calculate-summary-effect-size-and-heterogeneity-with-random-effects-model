@@ -1,0 +1,39 @@
+# Copyright © 2016, Alison C. Holland, All rights reserved.
+
+# --------------------------------------------------------------
+# Calculate summary ES & Heterogeneity with random-effects model
+# --------------------------------------------------------------
+
+# compute summary ES and Q-statistic
+m0 <- mareg(r ~ 1, var = var_r, method = "REML", data = aggES)
+summary(m0)
+
+# calculate I-squared & Tau-squared statistic
+confint(m0, digist = 2)
+
+
+# forest plot
+# -----------
+
+# plot simple forest plot
+forest(m0)
+
+# plot forest plot with study names and study year displayed
+forestPlot <- rma(yi = r, vi = var_r, data = aggES)
+forest(forestPlot, slab = paste(aggES$Study, aggES$Year, sep = ", "), xlim = c(-2.25, 2.25), digits = c(2, 2), cex = 1.3) 
+
+# add titles and subtitles
+par(cex = 1.3, font = 2) 
+text(0, 20.5, "Est. effect size from aggregated effect sizes per study", pos = 3)
+par(cex = 1.3, font = 1) 
+text(-2.25, 20, "Author(s) & Year", pos = 4)
+text(2.25, 20, "Observed r [95% CI]", pos = 2)
+
+
+# Baujat plot
+# -----------
+
+# plot Baujat plot
+baujatPlot <- rma(yi = r, vi = var_r, data = aggES)
+par(cex = 1.3, font = 2)
+baujat(baujatPlot, xlim = c(0,04), ylim = c(0,.40))
