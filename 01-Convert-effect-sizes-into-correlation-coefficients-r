@@ -1,0 +1,24 @@
+# Copyright © 2016, Alison C. Holland, All rights reserved.
+
+# ---------------------------------------------------------
+# Convert effect sizes (ES) into correlation coefficients r
+# ---------------------------------------------------------
+
+# t-values
+# --------
+
+# convert t-values into r
+data_r_from_t <- r_from_t(t, n)
+
+
+# F-values
+# --------
+
+# convert F-values to std mean dif (d) (n.1 = group 1/experimental group; n.2 = group 2/control group)
+data_f_to_d <- f_to_d(f, n.1, n.2)
+
+# compute r from d with same sample sizes in each group 
+data_r_from_d <- r_from_d(d, var.d, a = 4)
+
+# compute r from d with dif sample sizes in each group
+data_r_from_d1 <- r_from_d1(d, n.1, n.2, var.d)
