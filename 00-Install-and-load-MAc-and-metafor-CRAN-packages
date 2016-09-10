@@ -1,0 +1,12 @@
+# Copyright © 2016, Alison C. Holland, All rights reserved.
+
+# Install and load MAc and metafor CRAN packages
+# ----------------------------------------------
+
+# install packages
+install.packages("MAc")
+install.packages("metafor")
+
+# load packages
+library(MAc)
+library(metafor)
