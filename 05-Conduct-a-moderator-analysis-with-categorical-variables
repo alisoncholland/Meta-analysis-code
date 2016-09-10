@@ -1,0 +1,58 @@
+# Copyright © 2016, Alison C. Holland, All rights reserved.
+
+# --------------------------------------------------------------------
+# Conduct a moderator analysis with categorical variables (moderators)
+# --------------------------------------------------------------------
+
+# Moderator 1 with 3 levels
+# -------------------------
+
+var_r_func <- var_r(dat1$r,dat1$n)
+dat1$var_r <- var_r_func
+
+# fit separate models within each level
+rma(yi = r, vi = var_r, data = dat1, subset = (mod1 == "level1"))
+rma(yi = r, vi = var_r, data = dat1, subset = (mod1 == "level2"))
+rma(yi = r, vi = var_r, data = dat1, subset = (mod1 == "level3"))
+
+# create necessary dummy variables
+dat1$mod1.lev1 <- ifelse(dat1$mod1 == "level1", 1, 0)
+dat1$mod1.lev2 <- ifelse(dat1$mod1 == "level2", 1, 0)
+dat1$mod1.lev3 <- ifelse(dat1$mod1 == "level3", 1, 0)
+
+# estimate separate effects of each level
+m1sep <- rma(yi = r, vi = var_r, mods = ~ factor(mod1) - 1, data = dat1)
+m1sep
+
+# test if there's a difference between the levels (type of moderator)
+m1 <- rma(yi = r, vi = var_r, mods = ~ factor(mod1), data = dat1)
+m1
+
+# quantify heterogeneity in moderator
+m1_het <- mareg(r ~ mod1, var = var_r, method = "REML", data = dat1)
+confint(m1_het, digist = 2)
+
+
+# Moderator 2 with 2 levels
+# -------------------------
+
+# fit separate models within each level
+rma(yi = r, vi = var_r, data = dat1, subset = (mod2 == "level1"))
+rma(yi = r, vi = var_r, data = dat1, subset = (mod2 == "level2"))
+
+# create necessary dummy variables
+dat1$mod2.lev1 <- ifelse(dat1$mod2 == "level1", 1, 0)
+dat1$mod2.lev2 <- ifelse(dat1$mod2 == "level2", 1, 0)
+
+# estimate separate effects of each level
+m2sep <- rma(yi = r, vi = var_r, mods = ~ factor(mod2) - 1, data = dat1)
+m2sep
+
+# test if there's a difference between the levels (type of moderator)
+m2 <- rma(yi = r, vi = var_r, mods = ~ factor(mod2), data = dat1)
+m2
+
+# quantify heterogeneity in moderator
+m2_het <- mareg(r ~ mod2, var = var_r, method = "REML", data = dat1)
+confint(m2_het, digist = 2)
+
