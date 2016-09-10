@@ -1,0 +1,27 @@
+# Copyright © 2016, Alison C. Holland, All rights reserved.
+
+# ----------------------------------------------------
+# Check for publication bias and outliers in your data
+# ----------------------------------------------------
+
+# Test for asymmetry
+# ------------------
+
+# funnel plot
+par(cex = 1.3, font = 2)
+funnel(aggES, main = "Aggregated effect sizes per study with 95% CI")
+
+# Rank correlation test
+ranktest(aggES)
+
+# Egger's regression test
+egger <- rma( yi = r, vi = var_r, data = aggES)
+regtest.rma(egger)
+
+
+# Identify outliers
+# -----------------
+
+# plot normal Quartile-Quartile (Q-Q) plot
+par(cex = 1.3, font = 2)
+qqnorm(aggES, label = "all")
