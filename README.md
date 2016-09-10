@@ -5,8 +5,7 @@
 
 # ${1:Meta-analysis-code}
 
-## First, if you're not sure what a meta-analysis is, or if the bullet points below make no sense, 
-## you can find everything you need here: 
+## First, if you're not sure what a meta-analysis is, or if the bullet points below make no sense, you can find everything you need here: 
 ## https://alisonhollandblog.wordpress.com/2016/08/30/my-meta-analysis-code-thank-you-r/
 
 ## This meta-analysis code will do the following:
@@ -20,11 +19,7 @@
 
 # Installation
 
-## I used the free statistical software programme R (https://www.r-project.org/) to write and analyse my data. 
-## Once R is up and running, download the CRAN packages:
-
-## - MAc (https://cran.r-project.org/web/packages/MAc/index.html)
-## - metafor (https://cran.r-project.org/web/packages/metafor/index.html)
+## I used the free statistical software programme R (https://www.r-project.org/) to write and analyse my data. Once R is up and running, download the CRAN packages MAc (https://cran.r-project.org/web/packages/MAc/index.html), and metafor (https://cran.r-project.org/web/packages/metafor/index.html)
 
 
 # Usage
