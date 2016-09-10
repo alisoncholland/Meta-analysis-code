@@ -19,8 +19,7 @@
 # - Conduct a moderator analysis to see which factors influence the summary effect size
 
 
-# Installation
-# ------------
+## Installation
 
 # I used the free statistical software programme R (https://www.r-project.org/) to write and analyse my data. 
 # Once R is up and running, download the CRAN packages:
@@ -29,28 +28,23 @@
 # - metafor (https://cran.r-project.org/web/packages/metafor/index.html)
 
 
-# Usage
-# -----
+## Usage
 
 # Feel free to use whatever code you like. All I kindly ask in return is that you cite it appropriately :)
 
 
-# Contributing
-# ------------
+## Contributing
 
 
-# History
-# -------
+## History
 
 
-# Credits
-# -------
+## Credits
 
 # Alison C. Holland, 2016
 
 
-# License
-# -------
+## License
 
 
 ]]></content>
