@@ -27,19 +27,9 @@
 ## Feel free to use whatever code you like. All I kindly ask in return is that you cite it appropriately :)
 
 
-# Contributing
-
-
-# History
-
-
-# Credits
+# Credits & License
 
 ## Alison C. Holland, 2016
-
-
-# License
-
 
 ]]></content>
   <tabTrigger>readme</tabTrigger>
