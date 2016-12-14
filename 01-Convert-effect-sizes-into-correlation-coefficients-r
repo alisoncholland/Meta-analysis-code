@@ -4,21 +4,96 @@
 # Convert effect sizes (ES) into correlation coefficients r
 # ---------------------------------------------------------
 
+# Note: data table should include the following:
+# id, effect sizes ("ES"), number of participants ("n_1" for t-tests and F-tests, "n_2" for F-tests
+
+
 # t-values
 # --------
 
-# convert t-values into r
-data_r_from_t <- r_from_t(t, n)
+# select specific rows containing t-test values
+filter_t_test <- filter(data, ES_type == "t-test")
+
+# select specific columns - if the data contains unused columns, e.g. n_2 or values the function will count those and come up with an error
+data_t_stats <- select(filter_t_test, id, ES, n_1)
+
+# compute r
+data_r_from_t <- r_from_t(data_t_stats$ES, data_t_stats$n_1)
+
+# create data frame 
+df_r_from_t = data.frame(data_r_from_t)
+
+# bind columns r and var_r to data results
+df_dataResults_r_from_t <- data.frame(bind_cols(data_t_stats, df_r_from_t))
 
 
-# F-values
-# --------
+# F-values (same sample size in each group)
+# -----------------------------------------
 
-# convert F-values to std mean dif (d) (n.1 = group 1/experimental group; n.2 = group 2/control group)
-data_f_to_d <- f_to_d(f, n.1, n.2)
+# select specific rows 
+filter_F_test_same <- filter(data, ES_type == "f-test", n_1 == n_2)
 
-# compute r from d with same sample sizes in each group 
-data_r_from_d <- r_from_d(d, var.d, a = 4)
+# select specific columns
+data_F_stats_same <- select(filter_F_test_same, id, ES, n_1, n_2)
 
-# compute r from d with dif sample sizes in each group
-data_r_from_d1 <- r_from_d1(d, n.1, n.2, var.d)
+# compute d
+data_f_to_d <- f_to_d(data_F_stats_same$ES, data_F_stats_same$n_1, data_F_stats_same$n_2)
+
+# create data frame 
+df_f_to_d = data.frame(data_f_to_d)
+
+# bind columns r and var_r to data results
+dataResults_f_to_d <- bind_cols(data_F_stats_same, df_f_to_d)
+
+# compute r from d with same sample sizes
+data_r_from_d <- r_from_d(dataResults_f_to_d$d, dataResults_f_to_d$var_d, a = 4)
+
+# create data frame 
+df_r_from_d = data.frame(data_r_from_d)
+
+# merge data frames
+df_dataResults_r_from_d <- data.frame(bind_cols(data_F_stats_same, df_r_from_d))
+
+
+# F-values (different sample size in each group)
+# ----------------------------------------------
+
+# select specific rows
+filter_F_test_dif <- filter(data, ES_type == "f-test", n_1 != n_2)
+
+# select specific columns
+data_F_stats_dif <- select(filter_F_test_dif, id, ES, n_1, n_2)
+
+# compute d1
+data_f_to_d1 <- f_to_d(data_F_stats_dif$ES, data_F_stats_dif$n_1, data_F_stats_dif$n_2)
+
+# create data frame 
+df_f_to_d1 = data.frame(data_f_to_d1)
+
+# bind columns d1 and Var_d1 to data results
+dataResults_f_to_d1 <- bind_cols(data_F_stats_dif, df_f_to_d1)
+
+# compute r from d1
+data_r_from_d1 <- r_from_d1(dataResults_f_to_d1$d, dataResults_f_to_d1$n_1, dataResults_f_to_d1$n_2, dataResults_f_to_d1$var_d)
+
+# create data frame 
+df_r_from_d1 = data.frame(data_r_from_d1)
+
+# merge data frames
+df_dataResults_r_from_d1 <- data.frame(bind_cols(data_F_stats_dif, df_r_from_d1))
+
+
+# Add all correlation coefficients (r) into dat_convert as a new column
+# ---------------------------------------------------------------------
+
+# combine r and all data from data frames
+dataResults_r_all <- bind_rows(df_dataResults_r_from_t, df_dataResults_r_from_d, df_dataResults_r_from_d1)
+
+# select r and id
+dataResults_r <- select(dataResults_r_all, id, r)
+
+# arrange order by id
+dataResults_r_order <- arrange(dataResults_r, id)
+
+# merge r with original data 
+dataResults_r_from_ES <- bind_cols(dat, (select(dataResults_r_order, r)))
