@@ -6,7 +6,9 @@
 # install packages
 install.packages("MAc")
 install.packages("metafor")
+install.packages("dplyr")
 
 # load packages
 library(MAc)
 library(metafor)
+library(dplyr)
