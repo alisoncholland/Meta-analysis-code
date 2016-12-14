@@ -1,0 +1,25 @@
+# Copyright © 2016, Alison C. Holland, All rights reserved. 
+
+# ----------------------------------
+# Compute Pearson correlations from raw data
+# ----------------------------------
+
+# addition CRAN package needed
+install.packages("Hmisc")
+library(Hmisc)
+
+# ------------
+# Compute correlations from raw data (Chakraborty & Chakrabarti, 2015)
+# ------------
+
+# Correlations with sig levels
+Corr_data <- rcorr(as.matrix(data), type = "pearson")
+
+# check structure
+str(Corr_data)
+
+# create data frame of just correlations (r)
+df_Results_Corr = data.frame(Corr_data$r)
+
+# Write to .csv
+write.csv(df_Results_Corr, "dataResults_Corr.csv")
