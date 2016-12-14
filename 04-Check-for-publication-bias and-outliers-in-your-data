@@ -9,13 +9,13 @@
 
 # funnel plot
 par(cex = 1.3, font = 2)
-funnel(aggES, main = "Aggregated effect sizes per study with 95% CI")
+funnel(m0, main = "Aggregated effect sizes per study with 95% CI")
 
 # Rank correlation test
-ranktest(aggES)
+ranktest(m0)
 
 # Egger's regression test
-egger <- rma( yi = r, vi = var_r, data = aggES)
+egger <- rma( yi = r, vi = var_r, data = agg_data)
 regtest.rma(egger)
 
 
@@ -24,4 +24,4 @@ regtest.rma(egger)
 
 # plot normal Quartile-Quartile (Q-Q) plot
 par(cex = 1.3, font = 2)
-qqnorm(aggES, label = "all")
+qqnorm(plotData, label = "all")
