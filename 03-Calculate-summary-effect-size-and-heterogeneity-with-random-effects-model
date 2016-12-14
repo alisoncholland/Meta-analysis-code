@@ -4,11 +4,13 @@
 # Calculate summary ES & Heterogeneity with random-effects model
 # --------------------------------------------------------------
 
-# compute summary ES and Q-statistic
-m0 <- mareg(r ~ 1, var = var_r, method = "REML", data = aggES)
+# Random effects meta-regression
+
+# compute summary ES
+m0 <- mareg(r ~ 1, var = var_r, method = "REML", data = agg_data)
 summary(m0)
 
-# calculate I-squared & Tau-squared statistic
+# calculate Heterogeneity (I-squared & Tau-squared statistics)
 confint(m0, digist = 2)
 
 
@@ -18,11 +20,11 @@ confint(m0, digist = 2)
 # plot simple forest plot
 forest(m0)
 
-# plot forest plot with study names and study year displayed
-forestPlot <- rma(yi = r, vi = var_r, data = aggES)
-forest(forestPlot, slab = paste(aggES$Study, aggES$Year, sep = ", "), xlim = c(-2.25, 2.25), digits = c(2, 2), cex = 1.3) 
+# plot forest plot with study names and study year displayed 
+forestPlot <- rma(yi = r, vi = var_r, data = agg_data)
+forest(forestPlot, slab = paste(agg_data$Study, agg_data$Year, sep = ", "), xlim = c(-2.25, 2.25), digits = c(2, 2), cex = 1.3) 
 
-# add titles and subtitles
+# add titles and subtitles - adjust text placements accordingly
 par(cex = 1.3, font = 2) 
 text(0, 20.5, "Est. effect size from aggregated effect sizes per study", pos = 3)
 par(cex = 1.3, font = 1) 
@@ -34,6 +36,6 @@ text(2.25, 20, "Observed r [95% CI]", pos = 2)
 # -----------
 
 # plot Baujat plot
-baujatPlot <- rma(yi = r, vi = var_r, data = aggES)
+baujatPlot <- rma(yi = r, vi = var_r, data = agg_data)
 par(cex = 1.3, font = 2)
 baujat(baujatPlot, xlim = c(0,04), ylim = c(0,.40))
