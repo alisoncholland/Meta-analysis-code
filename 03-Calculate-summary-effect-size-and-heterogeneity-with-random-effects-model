@@ -36,6 +36,6 @@ text(2.25, 20, "Observed r [95% CI]", pos = 2)
 # -----------
 
 # plot Baujat plot
-baujatPlot <- rma(yi = r, vi = var_r, data = agg_data)
+plotData <- rma(yi = r, vi = var_r, data = agg_data)
 par(cex = 1.3, font = 2)
-baujat(baujatPlot, xlim = c(0,04), ylim = c(0,.40))
+baujat(plotData, xlim = c(0, 0.4), ylim = c(0, 0.4))
