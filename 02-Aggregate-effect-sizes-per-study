@@ -5,8 +5,17 @@
 # ----------------------
 
 # compute aggregated ES for each study
-aggES <- agg(id, r, n, cor = .50, mod = NULL, data = dat1)
+agg_data <- agg(id, r, n, cor = .50, mod = NULL, data = data)
 
-# compute variance of r (var_r) and add to R environment
-var_r_funcAgg <- var_r(aggES$r, aggES$n)
-aggES$var_r <- var_r_funcAgg
+# compute variance of correlation coef (r) and add variance column to data results
+var_r_funcAggData <- var_r(agg_data$r, agg_data$n)
+agg_data$var_r <- var_r_funcAggData
+
+# select columns Study and Year from original data
+Study_Year_all <- select(data, Study, Year)
+
+# remove duplicate rows 
+Study_Year <- distinct(Study_Year_all)
+
+# merge columns Study and Year with aggregated data results
+agg_data_Results <- bind_cols(Study_Year, agg_data)
