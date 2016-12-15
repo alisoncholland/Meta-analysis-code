@@ -42,7 +42,7 @@ data_f_to_d <- f_to_d(data_F_stats_same$ES, data_F_stats_same$n_1, data_F_stats_
 # create data frame 
 df_f_to_d = data.frame(data_f_to_d)
 
-# bind columns r and var_r to data results
+# bind columns d and var_d to data results
 dataResults_f_to_d <- bind_cols(data_F_stats_same, df_f_to_d)
 
 # compute r from d with same sample sizes
@@ -70,7 +70,7 @@ data_f_to_d1 <- f_to_d(data_F_stats_dif$ES, data_F_stats_dif$n_1, data_F_stats_d
 # create data frame 
 df_f_to_d1 = data.frame(data_f_to_d1)
 
-# bind columns d1 and Var_d1 to data results
+# bind columns d and var_d to data results
 dataResults_f_to_d1 <- bind_cols(data_F_stats_dif, df_f_to_d1)
 
 # compute r from d1
