@@ -20,6 +20,16 @@ data$mod1.lev1 <- ifelse(data$mod1 == "level1", 1, 0)
 data$mod1.lev2 <- ifelse(data$mod1 == "level2", 1, 0)
 data$mod1.lev3 <- ifelse(data$mod1 == "level3", 1, 0)
 
+# OR use a for loop
+mod1_levels <- levels(unique(data$mod1, incomparables = FALSE))
+
+for (i in 1:length(mod1_levels))
+{
+ rma(yi = r, vi = var_r, data = data, subset = (mod1 == mod1_levels[i]))
+ variableName <- paste("mod1_dummy", mod1_levels[i], sep=".")
+ data[variableName] <- ifelse(data$mod1 == mod1_levels[i], 1, 0)
+}
+
 # estimate separate effects of each level
 m1sep <- rma(yi = r, vi = var_r, mods = ~ factor(mod1) - 1, data = data)
 m1sep
@@ -43,6 +53,16 @@ rma(yi = r, vi = var_r, data = data, subset = (mod2 == "level2"))
 # create necessary dummy variables
 data$mod2.lev1 <- ifelse(data$mod2 == "level1", 1, 0)
 data$mod2.lev2 <- ifelse(data$mod2 == "level2", 1, 0)
+
+# OR use a for loop
+mod2_levels <- levels(unique(data$mod2, incomparables = FALSE))
+
+for (i in 1:length(mod2_levels))
+{
+ rma(yi = r, vi = var_r, data = data, subset = (mod2 == mod2_levels[i]))
+ variableName <- paste("mod2_dummy", mod2_levels[i], sep=".")
+ data[variableName] <- ifelse(data$mod2 == mod2_levels[i], 1, 0)
+}
 
 # estimate separate effects of each level
 m2sep <- rma(yi = r, vi = var_r, mods = ~ factor(mod2) - 1, data = data)
