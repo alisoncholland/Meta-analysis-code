@@ -1,7 +1,7 @@
 # Copyright © 2016, Alison C. Holland, All rights reserved.
 
-# Install and load MAc and metafor CRAN packages
-# ----------------------------------------------
+# Install and load MAc, metafor and dplyr CRAN packages
+# -----------------------------------------------------
 
 # install packages
 install.packages("MAc")
