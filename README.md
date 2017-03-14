@@ -19,7 +19,7 @@
 
 # Installation
 
-## I used the free statistical software programme R (https://www.r-project.org/) to write and analyse my data. Once R is up and running, download the CRAN packages MAc (https://cran.r-project.org/web/packages/MAc/index.html), and metafor (https://cran.r-project.org/web/packages/metafor/index.html)
+## I used the free statistical software programme R (https://www.r-project.org/) to write and analyse my data. Once R is up and running, download the CRAN packages MAc (https://cran.r-project.org/web/packages/MAc/index.html), metafor (https://cran.r-project.org/web/packages/metafor/index.html), and dplyr https://cran.r-project.org/web/packages/dplyr/index.html.
 
 
 # Usage
