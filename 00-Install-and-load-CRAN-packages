@@ -7,8 +7,12 @@
 install.packages("MAc")
 install.packages("metafor")
 install.packages("dplyr")
+install.packages("Hmisc")
+install.packages("ggplot")
 
 # load packages
 library(MAc)
 library(metafor)
 library(dplyr)
+library(Hmisc)
+library(ggplot)
