@@ -86,7 +86,7 @@ plot(r ~ mod1, boxPlot_mod1)
 
 # plot box plot with additional features
 plot(r ~ mod1, boxPlot_mod1, col = rainbow(length(unique(boxPlot_mod1)))) # add rainbow colours
-plot(r ~ mod1, boxPlot_mod1, col = c("mistyrose", "powderblue"), xlab = "x-axis title") # add colours and customised x-axis text
+plot(r ~ mod1, boxPlot_mod1, col = c("mistyrose", "powderblue")) # choose colours
 title("Moderator 1")
 
 
