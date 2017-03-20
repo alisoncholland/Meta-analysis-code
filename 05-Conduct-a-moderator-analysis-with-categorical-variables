@@ -69,6 +69,27 @@ m2 <- rma(yi = r, vi = var_r, mods = ~ factor(mod2), data = data)
 m2
 
 
+# Box Plot for Moderator 1
+# ------------------------
+
+# filter data
+dat_boxPlot_mod1 <- select(data, id, Study, Year, r, mod1)
+
+# write to .csv
+write.csv(data_boxPlot_mod1, "importData_boxPlot_mod1.csv")
+
+# load data
+boxPlot_mod1 <- read.csv("C:/.../importData_boxPlot.csv", header = TRUE)
+
+# plot basic box plot
+plot(r ~ mod1, boxPlot_mod1)
+
+# plot box plot with additional features
+plot(r ~ mod1, boxPlot_mod1, col = rainbow(length(unique(boxPlot_mod1)))) # add rainbow colours
+plot(r ~ mod1, boxPlot_mod1, col = c("mistyrose", "powderblue"), xlab = "x-axis title") # add colours and customised x-axis text
+title("Moderator 1")
+
+
 # Checking for confounding categorical moderators (mod1 & mod2)  
 # -------------------------------------------------------------
 
