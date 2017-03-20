@@ -1,0 +1,18 @@
+# Copyright © 2017, Alison C. Holland, All rights reserved.
+
+# -----------------------------------
+# Confounding catrgoeircal moderators  
+# -----------------------------------
+
+# Moderator 1 & Moderator 2
+# -------------------------
+
+# fit model
+m_mod1and2 <- rma(yi = r, vi = var_r, mods = ~ factor(mod1) + factor(mod2), data = data, method = "ML")
+m_mod1and2
+
+# tests whether mod1 is significant while controlling for the influence of mod2
+anova(m_mod1and2, btt = 2:3) # as mod1 has 2 levels, 'btt = 2:3' selects the levels (but not the intercept) of mod1
+
+# tests whether mod2 is significant while controlling for the influence of mod1
+anova(m_mod1and2, btt = 4) # as mod2 has 2 levels, 'btt = 4' selects the level (but not the intercept) of mod2
