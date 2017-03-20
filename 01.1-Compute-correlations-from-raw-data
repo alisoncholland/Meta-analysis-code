@@ -1,8 +1,8 @@
 # Copyright © 2016, Alison C. Holland, All rights reserved. 
 
-# ----------------------------------
+# ------------------------------------------
 # Compute Pearson correlations from raw data
-# ----------------------------------
+# ------------------------------------------
 
 # Correlations with sig levels
 Corr_data <- rcorr(as.matrix(data), type = "pearson")
