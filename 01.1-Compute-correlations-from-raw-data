@@ -4,14 +4,6 @@
 # Compute Pearson correlations from raw data
 # ----------------------------------
 
-# addition CRAN package needed
-install.packages("Hmisc")
-library(Hmisc)
-
-# ------------
-# Compute correlations from raw data (Chakraborty & Chakrabarti, 2015)
-# ------------
-
 # Correlations with sig levels
 Corr_data <- rcorr(as.matrix(data), type = "pearson")
 
