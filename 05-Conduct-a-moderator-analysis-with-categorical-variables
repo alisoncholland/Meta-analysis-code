@@ -34,9 +34,12 @@ for (i in 1:length(mod1_levels))
 m1sep <- rma(yi = r, vi = var_r, mods = ~ factor(mod1) - 1, data = data)
 m1sep
 
-# test if there's a difference between the levels (type of moderator)
+# test if there's a difference between the intercept and levels (type of moderator)
 m1 <- rma(yi = r, vi = var_r, mods = ~ factor(mod1), data = data)
 m1
+
+# test if there's a difference between selected pairs of levels (e.g. level2 and level3)
+anova(m1sep, L = c(0, 1, -1))
 
 
 # Moderator 2 with 2 levels
