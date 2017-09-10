@@ -25,3 +25,17 @@ regtest.rma(egger)
 # plot normal Quartile-Quartile (Q-Q) plot
 par(cex = 1.3, font = 2)
 qqnorm(plotData, label = "all")
+
+
+# Trim and Fill
+# -------------
+
+# fit Fixed-Effects model
+trimFill_data <- rma(yi = r, vi = var_r, data = agg_data, method = "FE")
+
+# trim and fill
+trimFill_results <- trimfill(trimFill_data)
+trimFill_results
+
+# funnel plot
+funnel(trimFill_results, main = "Funnel plot of aggregated effect sizes per study")
