@@ -15,7 +15,9 @@
 ## 3. Calculate the summary (overall) effect size and heterogeneity
 ## 4. Check for publication bias and outliers in your data
 ## 5. Conduct a moderator analysis to see which factors influence the summary effect size
+## 6. Actual code used to conduct the meta-analysis 'Spontaneous facial mimicry and empathy: A meta-analysis of correlations' (Authors: Holland, Alison; Department of Education and Psychology, Freie Universität Berlin, O'Connell, Garret; Berlin School of Mind and Brain, Humboldt Universität zu Berlin, Dziobek, Isabel; Berlin School of Mind and Brain, Humboldt Universität zu Berlin)
 
+## The data file 'Meta-analysis_table_rawData.xlsx' is also included and can be used with the code to run the meta-analysis.
 
 # Installation
 
