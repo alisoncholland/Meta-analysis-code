@@ -1,0 +1,1521 @@
+
+# Copyright © 2016, Alison C. Holland, All rights reserved. 
+
+#######################################################################################
+# Full code for Spontaneous facial mimicry and empathy: A meta-analysis of correlations
+#######################################################################################
+
+# ---------------
+# filter emp data
+# ---------------
+
+# select specific rows
+dat_emp_aq <- filter(dat1, Measure != "Rec")
+dat_emp <- filter(dat_emp_aq, Measure_emp_aq != "aq")
+
+# write to .csv
+write.csv(dat_emp, "chosenData_FMemp.csv")
+
+
+# -------------------------
+# aggregate ES for FM x Emp
+# -------------------------
+
+# select specific columns
+dat_emp_agg <- select(dat_emp, id, r, n)
+
+# compute aggregated ES for each study
+agg_emp <- agg(id, r, n, cor = .50, mod = NULL, data = dat_emp_agg)
+
+# compute variance of correlation coef (r) and add variance column to data results
+var_r_funcAggEmp <- var_r(agg_emp$r, agg_emp$n)
+agg_emp$var_r <- var_r_funcAggEmp
+
+# select columns Study and Year from original data
+Study_Year_emp_all <- select(dat_emp, Study, Year)
+
+# remove duplicate rows 
+Study_Year_emp <- distinct(Study_Year_emp_all)
+
+# merge columns Study and Year with aggregated data results
+agg_emp_Results <- bind_cols(Study_Year_emp, agg_emp)
+
+# write to .csv
+write.csv(agg_emp_Results, "dataResults_FMemp.csv")
+
+
+# -------------------
+# Est ES for FM x Emp
+# -------------------
+
+# Random effects meta-regression
+
+# compute est. summary effect
+m0agg_emp <- mareg(r ~ 1, var = var_r, method = "REML", data = agg_emp)
+summary(m0agg_emp)
+
+# Save output as .txt file
+#m0agg_emp_Results <- capture.output(summary(m0agg_emp))
+#cat("Estimated ES FM x Emp", m0agg_emp_Results, file="dataResults_FMemp.txt", sep="\n", append=TRUE)
+
+
+# ------------------------------------
+# Calculate heterogeneity for FM x Emp
+# ------------------------------------
+
+# Calculate I2
+het_m0agg_emp <- confint(m0agg_emp, digist = 2)
+het_m0agg_emp
+
+# Save output as .txt file - not working!
+#het_m0agg_emp_Results <- capture.output(summary(het_m0agg_emp))
+#cat("\n", "Heterogeneity ES FM x Emp", het_m0agg_emp_Results, file = "dataResults_FMemp.txt", sep="\t", append=TRUE)
+
+
+# ------------------
+# plots for FM x Emp
+# ------------------
+
+# forest plot for agg
+
+# select specific columns
+agg_emp_forest <- select(agg_emp_Results, Study, Year, r, n, var_r)
+
+# plot forest plot
+forestPlot_emp_data <- rma(yi = r, vi = var_r, data = agg_emp_forest)
+forestPlot_emp <- forest(forestPlot_emp_data, slab = paste(agg_emp_forest$Study, agg_emp_forest$Year, sep = ", "), xlim = c(-2.25, 2.25), digits = c(2, 2), cex = 1.0) 
+
+# add bold titles
+par(cex = 1.3, font = 2) 
+text(0, 25.5, "Forest plot of aggregated effect sizes per study", pos = 3)
+par(cex = 1.3, font = 1) 
+text(-2.25, 25, "Author(s) & Year", pos = 4)
+text(2.25, 25, "Observed r [95% CI]", pos = 2)
+
+
+# plot Baujat plot
+
+# plot from agg ES
+agg_emp_baujat <- rma(yi = r, vi = var_r, data = agg_emp)
+par(cex = 1.3, font = 1)
+baujat(agg_emp_baujat, xlim=c(0, 4), ylim = c(0, 0.25), main = "Baujat plot of aggregated effect sizes per study")
+
+
+# plot Q-Q plot
+
+# id outliers
+par(cex = 1.3, font = 1)
+qqnorm(agg_emp_baujat, label = "all")
+qqnorm(agg_emp_baujat, label = "none")
+
+
+# -----------------------------
+# publication bias for FM x Emp
+# -----------------------------
+
+# plot funnel plot
+par(cex = 1.3, font = 1)
+funnel(m0agg_emp, main = "Funnel plot of aggregated effect sizes per study")
+
+# test for asymmetry - rank test
+ranktest(m0agg_emp)
+
+# save out as .txt file
+#ranktest_m0agg_emp_Results <- capture.output(ranktest(m0agg_emp))
+#cat("\n", "Rank Test for FM x Emp", ranktest_m0agg_emp_Results, file="dataResults_FMemp.txt", sep="\n", append=TRUE)
+
+# test for asymmetry - regression test (Egger's test) - rma for both mixed & random effects models - see metafor manual
+agg_emp_egger <- rma( yi = r, vi = var_r, data = agg_emp)
+regtest.rma(agg_emp_egger)
+
+# save out as .txt file
+#eggerstest_m0agg_emp_Results <- capture.output(regtest.rma(agg_emp_egger))
+#cat("\n", "Egger's Test for FM x Emp", eggerstest_m0agg_emp_Results, file = "dataResults_FMemp.txt", sep="\n", append=TRUE)
+
+
+# -------------------------------
+# Moderator analysis for FM x Emp
+# -------------------------------
+
+# calculate variance
+var_r_func <- var_r(dat_emp$r,dat_emp$n)
+dat_emp$var_r <- var_r_func
+
+
+# Gender male vs. female
+# ----------------------
+
+# select specific values from data
+dat_emp_gender_mf <- filter(dat_emp, Gender != "both")
+
+# calculate number of studies with specific values
+dat_emp %>% filter(Gender == "f") %>% distinct(id)
+dat_emp %>% filter(Gender == "m") %>% distinct(id)
+
+# change column name
+#colnames(dat_emp_gender_mf)[colnames(dat_emp_gender_mf)=="Gender"]<-"Gender_mf"
+
+# concatenate values
+#gendermfTag <- levels(unique(dat_emp_gender_mf$Gender_mf, incomparables = FALSE))
+gendermfTag <- levels(unique(dat_emp_gender_mf$Gender, incomparables = FALSE))
+gendermfTag
+
+# fit separate models within each level & create necessary dummy variables
+for (i in 1:length(gendermfTag))
+{
+  rma(yi = r, vi = var_r, data = dat_emp_gender_mf, subset = (Gender == gendermfTag[i]))
+  columnName <- paste("gender_mf",gendermfTag[i], sep=".")
+  dat_emp_gender_mf[columnName] <- ifelse(dat_emp_gender_mf$Gender == gendermfTag[i], 1, 0)
+}
+
+# est. separate effects
+msep_gender_mf <- rma(yi = r, vi = var_r, mods = ~ factor(Gender) - 1, data = dat_emp_gender_mf)
+msep_gender_mf
+
+# Save output as .txt file
+#msep_gender_mf_Results <- capture.output(summary(msep_gender_mf))
+#cat("\n", "Estimated separate effects FM x EMP Gender - m & f", msep_gender_mf_Results, file = "dataResults_FMemp_modAn.txt", sep = "\n", append=TRUE)
+
+# test moderator
+m_gender_mf <- rma(yi = r, vi = var_r, mods = ~ factor(Gender), data = dat_emp_gender_mf)
+m_gender_mf
+
+# Save output as .txt file
+#m_gender_mf_Results <- capture.output(summary(m_gender_mf))
+#cat("\n", "Test Moderator FM x EMP Gender - m & f", m_gender_mf_Results, file = "dataResults_FMemp_modAn.txt", sep = "\n", append=TRUE)
+
+
+# Gender box plot
+
+# filter data
+dat_boxPlot_gender_all <- select(dat_emp, id, Study, Year, r, Gender)
+dat_boxPlot_gender <- filter(dat_boxPlot_gender_all, Gender != "both")
+
+# write to .csv
+write.csv(dat_boxPlot_gender, "importData_boxplot_FMemp_Gender.csv")
+
+# load data
+boxPlot_gender <- read.csv("C:/Users/wease/Desktop/Ali/Ali_pubPaper/Rdata/importData_boxplot_FMemp_Gender.csv", header = TRUE)
+
+# plot basic box plot
+plot(r ~ Gender, boxPlot_gender, xlab = "Gender")
+title("Estimated Average Effects for Each Moderator Level")
+
+
+# Test dif between levels
+
+# high emp & low emp
+#anova(msep_gender_mf, L = c(1, -1))
+
+# Gender line plot
+#plot(coef(msep_gender_mf)[1:2], type = "o", pch = 19, ylim = c(0, 0.2), xlab = "Gender", ylab = "Standardized Mean Difference", xaxt = "n", bty = "l")
+#axis(side = 1, at = 1:2, labels = c("Female","Male"))
+#title("Estimated Average Effects based on the Additive Model")
+
+
+# Muscle
+# ------
+
+# calculate number of studies with specific values
+dat_emp %>% filter(Muscle == "CS") %>% distinct(id)
+dat_emp %>% filter(Muscle == "LF") %>% distinct(id)
+dat_emp %>% filter(Muscle == "OC") %>% distinct(id)
+dat_emp %>% filter(Muscle == "ZM") %>% distinct(id)
+
+# concatenate values
+muscleTag <- levels(unique(dat_emp$Muscle, incomparables = FALSE))
+muscleTag
+
+# fit separate models within each level & create necessary dummy variables
+for (i in 1:length(muscleTag))
+{
+  rma(yi = r, vi = var_r, data = dat_emp, subset = (Muscle == muscleTag[i]))
+  columnName <- paste("muscle",muscleTag[i], sep=".")
+  dat_emp[columnName] <- ifelse(dat_emp$Muscle == muscleTag[i], 1, 0)
+}
+
+# est. separate effects
+msep_muscle <- rma(yi = r, vi = var_r, mods = ~ factor(Muscle) -1, data = dat_emp)
+msep_muscle
+
+# test moderator
+m_muscle <- rma(yi = r, vi = var_r, mods = ~ factor(Muscle), data = dat_emp)
+m_muscle
+
+
+# Muscle box plot
+
+# filter data
+dat_boxPlot_muscle <- select(dat_emp, id, Study, Year, r, Muscle)
+
+# write to .csv
+write.csv(dat_boxPlot_muscle, "importData_boxPlot_FMemp_Muscle.csv")
+
+# load data
+boxPlot_muscle <- read.csv("C:/Users/wease/Desktop/Ali/Ali_pubPaper/Rdata/importData_boxPlot_FMemp_Muscle.csv", header = TRUE)
+
+# plot basic box plot
+plot(r ~ Muscle, boxPlot_muscle)
+#plot(r ~ Muscle, boxPlot_muscle, col = rainbow(length(unique(boxPlot_muscle))))
+#plot(r ~ Muscle, boxPlot_muscle, col = c("powderblue", "mistyrose", "palegreen", "sandybrown"))
+title("Estimated Average Effects for Each Moderator Level")
+
+
+# Test dif between levels
+
+# CS & LF
+anova(msep_muscle, L = c(1, -1, 0, 0))
+
+# CS & OC
+anova(msep_muscle, L = c(1, 0, -1, 0))
+
+# CS & ZM
+anova(msep_muscle, L = c(1, 0, 0, -1))
+
+# LF & OC
+anova(msep_muscle, L = c(0, 1, -1, 0))
+
+# LF & ZM
+anova(msep_muscle, L = c(0, 1, 0, -1))
+
+# OC & ZM
+anova(msep_muscle, L = c(0, 0, 1, -1))
+
+
+# Muscle line plot
+plot(coef(msep_muscle)[1:4], type = "o", pch = 19, ylim = c(0, 0.5), xlab = "Muscle", ylab = "Standardized Mean Difference", xaxt = "n", bty = "l")
+
+# label x-axis
+axis(side = 1, at = 1:4, labels = c("CS","LF","OC", "ZM"))
+
+# for 2nd factor
+#lines(coef(res.a2)[1:3] + coef(res.a2)[4], type="o", pch=15, lty="dotted")
+
+# add legend
+#legend("topright", legend=c("Test Administrator Blind", "Test Administrator Aware"), lty=c("solid", "dotted"), pch=c(19,15), inset=0.01)
+
+# add title
+title("Estimated Average Effects based on the Additive Model")
+
+
+# Muscle - neg
+# ------------
+
+# select specific values from data
+dat_emp_musc_neg <- filter(dat_emp, Muscle != "ZM")
+
+# concatenate values
+muscleTagNeg <- levels(unique(dat_emp_musc_neg$Muscle, incomparables = FALSE))
+muscleTagNeg
+
+# fit separate models within each level & create necessary dummy variables
+for (i in 1:length(muscleTagNeg))
+{
+  rma(yi = r, vi = var_r, data = dat_emp_musc_neg, subset = (Muscle == muscleTagNeg[i]))
+  columnName <- paste("muscle",muscleTagNeg[i], sep=".")
+  dat_emp_musc_neg[columnName] <- ifelse(dat_emp_musc_neg$Muscle == muscleTagNeg[i], 1, 0)
+}
+
+# est. separate effects
+msep_muscle_neg <- rma(yi = r, vi = var_r, mods = ~ factor(Muscle) -1, data = dat_emp_musc_neg)
+msep_muscle_neg
+
+# test moderator
+m_muscle_neg <- rma(yi = r, vi = var_r, mods = ~ factor(Muscle), data = dat_emp_musc_neg)
+m_muscle_neg
+
+
+# Muscle box plot
+
+# filter data
+dat_boxPlot_muscle_neg <- select(dat_emp_musc_neg, id, Study, Year, r, Muscle)
+
+# write to .csv
+write.csv(dat_boxPlot_muscle_neg, "importData_boxPlot_FMemp_Muscle_neg.csv")
+
+# load data
+boxPlot_muscle_neg <- read.csv("C:/Users/wease/Desktop/Ali/Ali_pubPaper/Rdata/importData_boxPlot_FMemp_Muscle_neg.csv", header = TRUE)
+
+# plot basic box plot
+plot(r ~ Muscle, boxPlot_muscle_neg)
+#plot(r ~ Muscle, boxPlot_muscle, col = rainbow(length(unique(boxPlot_muscle))))
+#plot(r ~ Muscle, boxPlot_muscle, col = c("powderblue", "mistyrose", "palegreen", "sandybrown"))
+title("Estimated Average Effects for Each Moderator Level")
+
+
+# Test dif between levels
+
+# CS & LF
+anova(msep_muscle_neg, L = c(1, -1, 0))
+
+# CS & OC
+anova(msep_muscle_neg, L = c(1, 0, -1))
+
+# LF & OC
+anova(msep_muscle_neg, L = c(0, 1, -1))
+
+
+# Muscle line plot
+plot(coef(msep_muscle_neg)[1:3], type = "o", pch = 19, ylim = c(0, 0.5), xlab = "Muscle", ylab = "Standardized Mean Difference", xaxt = "n", bty = "l")
+
+# label x-axis
+axis(side = 1, at = 1:3, labels = c("CS","LF","OC"))
+
+# for 2nd factor
+#lines(coef(res.a2)[1:3] + coef(res.a2)[4], type="o", pch=15, lty="dotted")
+
+# add legend
+#legend("topright", legend=c("Test Administrator Blind", "Test Administrator Aware"), lty=c("solid", "dotted"), pch=c(19,15), inset=0.01)
+
+# add title
+title("Estimated Average Effects based on the Additive Model")
+
+
+# Emotion
+# -------
+
+# calculate number of studies with specific values
+dat_emp %>% filter(Emotion == "ang") %>% distinct(id)
+dat_emp %>% filter(Emotion == "dis") %>% distinct(id)
+dat_emp %>% filter(Emotion == "fea") %>% distinct(id)
+dat_emp %>% filter(Emotion == "hap") %>% distinct(id)
+dat_emp %>% filter(Emotion == "pai") %>% distinct(id)
+dat_emp %>% filter(Emotion == "sad") %>% distinct(id)
+
+# concatenate values
+emotionTag <- levels(unique(dat_emp$Emotion, incomparables = FALSE))
+emotionTag
+
+# fit separate models within each level & create necessary dummy variables
+for (i in 1:length(emotionTag))
+{
+  rma(yi = r, vi = var_r, data = dat_emp, subset = (Emotion == emotionTag[i]))
+  columnName <- paste("emotion",emotionTag[i], sep=".")
+  dat_emp[columnName] <- ifelse(dat_emp$Emotion == emotionTag[i], 1, 0)
+}
+
+# est. separate effects
+msep_emotion <- rma(yi = r, vi = var_r, mods = ~ factor(Emotion) -1, data = dat_emp)
+msep_emotion
+
+# test moderator
+m_emotion <- rma(yi = r, vi = var_r, mods = ~ factor(Emotion), data = dat_emp)
+m_emotion
+
+
+# Emotion box plot
+
+# filter data
+dat_boxPlot_emotion <- select(dat_emp, id, Study, Year, r, Emotion)
+
+# write to .csv
+write.csv(dat_boxPlot_emotion, "importData_boxplot_FMemp_Emotion.csv")
+
+# load data
+boxPlot_emotion <- read.csv("C:/Users/wease/Desktop/Ali/Ali_pubPaper/Rdata/importData_boxplot_FMemp_Emotion.csv", header = TRUE)
+
+# plot basic box plot
+plot(r ~ Emotion, boxPlot_emotion, xlab = "Emotion")
+title("Estimated Average Effects for Each Moderator Level")
+
+
+# Test dif between levels
+
+# ang & dis
+anova(msep_emotion, L = c(1, -1, 0, 0, 0, 0))
+
+# ang & fea
+anova(msep_emotion, L = c(1, 0, -1, 0, 0, 0))
+
+# ang & hap
+anova(msep_emotion, L = c(1, 0, 0, -1, 0, 0))
+
+# ang & pai
+anova(msep_emotion, L = c(1, 0, 0, 0, -1, 0))
+
+# ang & sad
+anova(msep_emotion, L = c(1, 0, 0, 0, 0, -1))
+
+
+# dis & fea
+anova(msep_emotion, L = c(0, 1, -1, 0, 0, 0))
+
+# dis & hap
+anova(msep_emotion, L = c(0, 1, 0, -1, 0, 0))
+
+# dis & pai
+anova(msep_emotion, L = c(0, 1, 0, 0, -1, 0))
+
+# dis & sad
+anova(msep_emotion, L = c(0, 1, 0, 0, 0, -1))
+
+
+# fea & hap
+anova(msep_emotion, L = c(0, 0, 1, -1, 0, 0))
+
+# fea & pai
+anova(msep_emotion, L = c(0, 0, 1, 0, -1, 0))
+
+# fea & sad
+anova(msep_emotion, L = c(0, 0, 1, 0, 0, -1))
+
+
+# hap & pai
+anova(msep_emotion, L = c(0, 0, 0, 1, -1, 0))
+
+# hap & sad
+anova(msep_emotion, L = c(0, 0, 0, 1, 0, -1))
+
+
+# pai & sad
+anova(msep_emotion, L = c(0, 0, 0, 0, 1, -1))
+
+
+# Emotion line plot
+plot(coef(msep_emotion)[1:6], type = "o", pch = 19, ylim = c(0, 0.3), xlab = "Emotion", ylab = "Standardized Mean Difference", xaxt = "n", bty = "l")
+axis(side = 1, at = 1:6, labels = c("Anger","Disgust","Fear", "Happiness", "Pain", "Sadness"))
+title("Estimated Average Effects based on the Additive Model")
+
+
+# Emotion - neg
+# -------------
+
+# select specific values from data
+dat_emp_emo_neg <- filter(dat_emp, Emotion != "hap")
+
+# concatenate values
+emotionTag <- levels(unique(dat_emp_emo_neg$Emotion, incomparables = FALSE))
+emotionTag
+
+# fit separate models within each level & create necessary dummy variables
+for (i in 1:length(emotionTag))
+{
+  rma(yi = r, vi = var_r, data = dat_emp_emo_neg, subset = (Emotion == emotionTag[i]))
+  columnName <- paste("emotion",emotionTag[i], sep=".")
+  dat_emp_emo_neg[columnName] <- ifelse(dat_emp_emo_neg$Emotion == emotionTag[i], 1, 0)
+}
+
+# est. separate effects
+msep_emotion_neg <- rma(yi = r, vi = var_r, mods = ~ factor(Emotion) -1, data = dat_emp_emo_neg)
+msep_emotion_neg
+
+# test moderator
+m_emotion_neg <- rma(yi = r, vi = var_r, mods = ~ factor(Emotion), data = dat_emp_emo_neg)
+m_emotion_neg
+
+
+# Emotion box plot
+
+# filter data
+dat_boxPlot_emotion_neg <- select(dat_emp_emo_neg, id, Study, Year, r, Emotion)
+
+# write to .csv
+write.csv(dat_boxPlot_emotion_neg, "importData_boxplot_FMemp_Emotion_neg.csv")
+
+# load data
+boxPlot_emotion_neg <- read.csv("C:/Users/wease/Desktop/Ali/Ali_pubPaper/Rdata/importData_boxplot_FMemp_Emotion_neg.csv", header = TRUE)
+
+# plot basic box plot
+plot(r ~ Emotion, boxPlot_emotion_neg, xlab = "Emotion")
+title("Estimated Average Effects for Each Moderator Level")
+
+
+# Test dif between levels
+
+# ang & dis
+anova(msep_emotion_neg, L = c(1, -1, 0, 0, 0))
+
+# ang & fea
+anova(msep_emotion_neg, L = c(1, 0, -1, 0, 0))
+
+# ang & pai
+anova(msep_emotion_neg, L = c(1, 0, 0, -1, 0))
+
+# ang & sad
+anova(msep_emotion_neg, L = c(1, 0, 0, 0, -1))
+
+
+# dis & fea
+anova(msep_emotion_neg, L = c(0, 1, -1, 0, 0))
+
+# dis & pai
+anova(msep_emotion_neg, L = c(0, 1, 0, -1, 0))
+
+# dis & sad
+anova(msep_emotion_neg, L = c(0, 1, 0, 0, -1))
+
+
+# fea & pai
+anova(msep_emotion_neg, L = c(0, 0, 1, -1, 0))
+
+# fea & sad
+anova(msep_emotion_neg, L = c(0, 0, 1, 0, -1))
+
+
+# pai & sad
+anova(msep_emotion_neg, L = c(0, 0, 0, 1, -1))
+
+
+# Emotion line plot
+plot(coef(msep_emotion_neg)[1:5], type = "o", pch = 19, ylim = c(0, 0.3), xlab = "Emotion", ylab = "Standardized Mean Difference", xaxt = "n", bty = "l")
+axis(side = 1, at = 1:5, labels = c("Anger","Disgust","Fear", "Pain", "Sadness"))
+title("Estimated Average Effects based on the Additive Model")
+
+
+# Emotion valence
+# ---------------
+
+# calculate number of studies with specific values
+dat_emp %>% filter(Emotion_valence == "neg") %>% distinct(id)
+dat_emp %>% filter(Emotion_valence == "pos") %>% distinct(id)
+
+# concatenate values
+emo_valTag <- levels(unique(dat_emp$Emotion_valence, incomparables = FALSE))
+emo_valTag
+
+# fit separate models within each level & create necessary dummy variables
+for (i in 1:length(emo_valTag))
+{
+  rma(yi = r, vi = var_r, data = dat_emp, subset = (Emotion_valence == emo_valTag[i]))
+  columnName <- paste("emo_val",emo_valTag[i], sep=".")
+  dat_emp[columnName] <- ifelse(dat_emp$Emotion_valence == emo_valTag[i], 1, 0)
+}
+
+# est. separate effects
+msep_emoVal <- rma(yi = r, vi = var_r, mods = ~ factor(Emotion_valence) - 1, data = dat_emp)
+msep_emoVal
+
+# test moderator
+m_emoVal <- rma(yi = r, vi = var_r, mods = ~ factor(Emotion_valence), data = dat_emp)
+m_emoVal
+
+
+# Emotion valence box plot
+
+# filter data
+dat_boxPlot_emoVal <- select(dat_emp, id, Study, Year, r, Emotion_valence)
+
+# write to .csv
+write.csv(dat_boxPlot_emoVal, "importData_boxplot_FMemp_EmoVal.csv")
+
+# load data
+boxPlot_emoVal <- read.csv("C:/Users/wease/Desktop/Ali/Ali_pubPaper/Rdata/importData_boxplot_FMemp_EmoVal.csv", header = TRUE)
+
+# plot basic box plot
+plot(r ~ Emotion_valence, boxPlot_emoVal, xlab = "Emotion Valence")
+title("Estimated Average Effects for Each Moderator Level")
+
+
+# Test dif between levels
+
+# neg & pos
+#anova(msep_emoVal, L = c(1, -1))
+
+# Emotion valence line plot
+#plot(coef(msep_emoVal)[1:2], type = "o", pch = 19, ylim = c(0, 0.2), xlab = "Emotion Valence", ylab = "Standardized Mean Difference", xaxt = "n", bty = "l")
+#axis(side = 1, at = 1:2, labels = c("Negative","Positive"))
+#title("Estimated Average Effects based on the Additive Model")
+
+
+# Stimuli
+# -------
+
+# calculate number of studies with specific values
+dat_emp %>% filter(Stimuli == "dyn") %>% distinct(id)
+dat_emp %>% filter(Stimuli == "sta") %>% distinct(id)
+
+# concatenate values
+stimuliTag <- levels(unique(dat_emp$Stimuli, incomparables = FALSE))
+stimuliTag
+
+# fit separate models within each level & create necessary dummy variables
+for (i in 1:length(stimuliTag))
+{
+  rma(yi = r, vi = var_r, data = dat_emp, subset = (Stimuli == stimuliTag[i]))
+  columnName <- paste("stimuli",stimuliTag[i], sep=".")
+  dat_emp[columnName] <- ifelse(dat_emp$Stimuli == stimuliTag[i], 1, 0)
+}
+
+# est. separate effects
+msep_stimuli <- rma(yi = r, vi = var_r, mods = ~ factor(Stimuli) - 1, data = dat_emp)
+msep_stimuli
+
+# test moderator
+m_stimuli <- rma(yi = r, vi = var_r, mods = ~ factor(Stimuli), data = dat_emp)
+m_stimuli
+
+
+# Stimuli box plot
+
+# filter data
+dat_boxPlot_stimuli <- select(dat_emp, id, Study, Year, r, Stimuli)
+
+# write to .csv
+write.csv(dat_boxPlot_stimuli, "importData_boxplot_FMemp_stimuli.csv")
+
+# load data
+boxPlot_stimuli <- read.csv("C:/Users/wease/Desktop/Ali/Ali_pubPaper/Rdata/importData_boxplot_FMemp_stimuli.csv", header = TRUE)
+
+# plot basic box plot
+plot(r ~ Stimuli, boxPlot_stimuli)
+title("Estimated Average Effects for Each Moderator Level")
+
+
+# Test dif between levels
+
+# dyn & sta
+#anova(msep_stimuli, L = c(1, -1))
+
+# Stimuli line plot
+#plot(coef(msep_stimuli)[1:2], type = "o", pch = 19, ylim = c(0, 0.2), xlab = "Stimuli", ylab = "Standardized Mean Difference", xaxt = "n", bty = "l")
+#axis(side = 1, at = 1:2, labels = c("Static","Dynamic"))
+#title("Estimated Average Effects based on the Additive Model")
+
+
+# Measure
+# -------
+
+# calculate number of studies with specific values
+dat_emp %>% filter(Measure == "state") %>% distinct(id)
+dat_emp %>% filter(Measure == "trait") %>% distinct(id)
+
+# concatenate values
+measureTag <- levels(unique(dat_emp$Measure, incomparables = FALSE))
+measureTag
+
+# fit separate models within each level & create necessary dummy variables
+for (i in 1:length(measureTag))
+{
+  rma(yi = r, vi = var_r, data = dat_emp, subset = (Measure == measureTag[i]))
+  columnName <- paste("measure",measureTag[i], sep=".")
+  dat_emp[columnName] <- ifelse(dat_emp$Measure == measureTag[i], 1, 0)
+}
+
+# est. separate effects
+msep_measure <- rma(yi = r, vi = var_r, mods = ~ factor(Measure) - 1, data = dat_emp)
+msep_measure
+
+# test moderator
+m_measure <- rma(yi = r, vi = var_r, mods = ~ factor(Measure), data = dat_emp)
+m_measure
+
+
+# Measure box plot
+
+# filter data
+dat_boxPlot_measure <- select(dat_emp, id, Study, Year, r, Measure)
+
+# write to .csv
+write.csv(dat_boxPlot_measure, "importData_boxplot_FMemp_measure.csv")
+
+# load data
+boxPlot_measure <- read.csv("C:/Users/wease/Desktop/Ali/Ali_pubPaper/Rdata/importData_boxplot_FMemp_measure.csv", header = TRUE)
+
+# plot basic box plot
+plot(r ~ Measure, boxPlot_measure)
+title("Estimated Average Effects for Each Moderator Level")
+
+
+# Test dif between levels
+
+# state & trait
+#anova(msep_measure, L = c(1, -1))
+
+# Measure line plot
+#plot(coef(msep_measure)[1:2], type = "o", pch = 19, ylim = c(0, 0.2), xlab = "Measure", ylab = "Standardized Mean Difference", xaxt = "n", bty = "l")
+#axis(side = 1, at = 1:2, labels = c("State Empathy","Trait Empathy"))
+#title("Estimated Average Effects based on the Additive Model")
+
+
+# Measure type - trait
+# --------------------
+
+# select specific values from data
+dat_emp_measure_trait <- filter(dat_emp, Measure == "trait")
+
+# concatenate values
+meas_traitTag <- levels(unique(dat_emp_measure_trait$Measure_type_full, incomparables = FALSE))
+meas_traitTag
+
+# fit separate models within each level & create necessary dummy variables
+for (i in 1:length(meas_traitTag))
+{
+  rma(yi = r, vi = var_r, data = dat_emp_measure_trait, subset = (Measure_type_full == meas_traitTag[i]))
+  columnName <- paste("meas_typ",meas_traitTag[i], sep=".")
+  dat_emp_measure_trait[columnName] <- ifelse(dat_emp_measure_trait$Measure_type_full == meas_traitTag[i], 1, 0)
+}
+
+# est. separate effects
+msep_measureTrait <- rma(yi = r, vi = var_r, mods = ~ factor(Measure_type_full) - 1, data = dat_emp_measure_trait)
+msep_measureTrait
+
+# test moderator
+m_measureTrait <- rma(yi = r, vi = var_r, mods = ~ factor(Measure_type_full), data = dat_emp_measure_trait)
+m_measureTrait
+
+
+# Measure type box plot
+
+# filter data
+dat_boxPlot_measTrait <- select(dat_emp_measure_trait, id, Study, Year, r, Measure_type)
+
+# write to .csv
+write.csv(dat_boxPlot_measTrait, "importData_boxplot_FMemp_MeasTrait.csv")
+
+# load data
+boxPlot_measTrait <- read.csv("C:/Users/wease/Desktop/Ali/Ali_pubPaper/Rdata/importData_boxplot_FMemp_MeasTrait.csv", header = TRUE)
+
+# plot basic box plot
+#plot(r ~ Measure_type, boxPlot_measTrait, col = rainbow(length(unique(boxPlot_measTrait))), las = 2, xlab = "") # took out "Measure_type" on x-axis
+plot(r ~ Measure_type, boxPlot_measTrait, las = 2, xlab = "") # took out "Measure_type" on x-axis
+title("Estimated Average Effects for Each Moderator Level")
+
+
+# Test dif between levels
+
+# trait emp (BEES, DPES, EQ, EQ aff, EQ cog, IECA, IRI, IRI ec, IRI pd, IRI pt, PES, QMEE, TEQ)
+
+# BEES - DPES
+anova(msep_measureTrait, L = c(1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+
+# BEES - EQ
+anova(msep_measureTrait, L = c(1, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+
+# BEES & EQ aff
+anova(msep_measureTrait, L = c(1, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+
+# BEES & EQ cog
+anova(msep_measureTrait, L = c(1, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0))
+
+# BEES & IECA
+anova(msep_measureTrait, L = c(1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0))
+
+# BEES & IRI
+anova(msep_measureTrait, L = c(1, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0))
+
+# BEES & IRI ec
+anova(msep_measureTrait, L = c(1, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0))
+
+# BEES & IRI pd
+anova(msep_measureTrait, L = c(1, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0))
+
+# BEES & IRI pt
+anova(msep_measureTrait, L = c(1, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0))
+
+# BEES & PES
+anova(msep_measureTrait, L = c(1, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0))
+
+# BEES & QMEE
+anova(msep_measureTrait, L = c(1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0))
+
+# BEES & TEQ
+anova(msep_measureTrait, L = c(1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1))
+
+
+# DPES - EQ
+anova(msep_measureTrait, L = c(0, 1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+
+# DPES & EQ aff
+anova(msep_measureTrait, L = c(0, 1, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+
+# DPES & EQ cog
+anova(msep_measureTrait, L = c(0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0))
+
+# DPES & IECA
+anova(msep_measureTrait, L = c(0, 1, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0))
+
+# DPES & IRI
+anova(msep_measureTrait, L = c(0, 1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0))
+
+# DPES & IRI ec
+anova(msep_measureTrait, L = c(0, 1, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0))
+
+# DPES & IRI pd
+anova(msep_measureTrait, L = c(0, 1, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0))
+
+# DPES & IRI pt
+anova(msep_measureTrait, L = c(0, 1, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0))
+
+# DPES & PES
+anova(msep_measureTrait, L = c(0, 1, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0))
+
+# DPES & QMEE
+anova(msep_measureTrait, L = c(0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0))
+
+# DPES & TEQ
+anova(msep_measureTrait, L = c(0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1))
+
+
+# EQ & EQ aff
+anova(msep_measureTrait, L = c(0, 0, 1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+
+# EQ & EQ cog
+anova(msep_measureTrait, L = c(0, 0, 1, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0))
+
+# EQ & IECA
+anova(msep_measureTrait, L = c(0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0))
+
+# EQ & IRI
+anova(msep_measureTrait, L = c(0, 0, 1, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0))
+
+# EQ & IRI ec
+anova(msep_measureTrait, L = c(0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0))
+
+# EQ & IRI pd
+anova(msep_measureTrait, L = c(0, 0, 1, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0))
+
+# EQ & IRI pt
+anova(msep_measureTrait, L = c(0, 0, 1, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0))
+
+# EQ & PES
+anova(msep_measureTrait, L = c(0, 0, 1, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0))
+
+# EQ & QMEE
+anova(msep_measureTrait, L = c(0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0))
+
+# EQ & TEQ
+anova(msep_measureTrait, L = c(0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1))
+
+
+# EQ aff & EQ cog
+anova(msep_measureTrait, L = c(0, 0, 0, 1, -1, 0, 0, 0, 0, 0, 0, 0, 0))
+
+# EQ aff & IECA
+anova(msep_measureTrait, L = c(0, 0, 0, 1, 0, -1, 0, 0, 0, 0, 0, 0, 0))
+
+# EQ aff & IRI
+anova(msep_measureTrait, L = c(0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 0))
+
+# EQ aff & IRI ec
+anova(msep_measureTrait, L = c(0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 0, 0, 0))
+
+# EQ aff & IRI pd
+anova(msep_measureTrait, L = c(0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, 0))
+
+# EQ aff & IRI pt
+anova(msep_measureTrait, L = c(0, 0, 0, 1, 0, 0, 0, 0, 0, -1, 0, 0, 0))
+
+# EQ aff & PES
+anova(msep_measureTrait, L = c(0, 0, 0, 1, 0, 0, 0, 0, 0, 0, -1, 0, 0))
+
+# EQ aff & QMEE
+anova(msep_measureTrait, L = c(0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, -1, 0))
+
+# EQ aff & TEQ
+anova(msep_measureTrait, L = c(0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, -1))
+
+
+# EQ cog & IECA
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 1, -1, 0, 0, 0, 0, 0, 0, 0))
+
+# EQ cog & IRI
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 0, 0, 0))
+
+# EQ cog & IRI ec
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0))
+
+# EQ cog & IRI pd
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 0, 0))
+
+# EQ cog & IRI pt
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0))
+
+# EQ cog & PES
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 1, 0, 0, 0, 0, 0, -1, 0, 0))
+
+# EQ cog & QMEE
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, -1, 0))
+
+# EQ cog & TEQ
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, -1))
+
+
+# IECA & IRI
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 0, 1, -1, 0, 0, 0, 0, 0, 0))
+
+# IECA & IRI ec
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 0, 0))
+
+# IECA & IRI pd
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0))
+
+# IECA & IRI pt
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 0))
+
+# IECA & PES
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0))
+
+# IECA & QMEE
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, -1, 0))
+
+# IECA & TEQ
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, -1))
+
+
+# IRI & IRI ec
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 0, 0, 1, -1, 0, 0, 0, 0, 0))
+
+# IRI & IRI pd
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 0))
+
+# IRI & IRI pt
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0))
+
+# IRI & PES
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0))
+
+# IRI & QMEE
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0))
+
+# IRI & TEQ
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, -1))
+
+
+# IRI ec & IRI pd
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 0, 0, 0, 1, -1, 0, 0, 0, 0))
+
+# IRI ec & IRI pt
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0))
+
+# IRI ec & PES
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0))
+
+# IRI ec & QMEE
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, -1, 0))
+
+# IRI ec & TEQ
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1))
+
+
+# IRI pd & IRI pt
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 0, 0, 0, 0, 1, -1, 0, 0, 0))
+
+# IRI pd & PES
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 0, 0, 0, 0, 1, 0, -1, 0, 0))
+
+# IRI pd & QMEE
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0))
+
+# IRI pd & TEQ
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, -1))
+
+
+# IRI pt & PES
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 1, -1, 0, 0))
+
+# IRI pt & QMEE
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, -1, 0))
+
+# IRI pt & TEQ
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, -1))
+
+
+# PES & QMEE
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, -1, 0))
+
+# PES & TEQ
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, -1))
+
+
+# QMEE & TEQ
+anova(msep_measureTrait, L = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, -1))
+
+
+# Measure Type line plot
+
+plot(coef(msep_measureTrait)[1:13], type = "o", pch = 19, ylim = c(-0.2, 0.6), xlab = "", ylab = "Standardized Mean Difference", xaxt = "n", bty = "l")
+axis(side = 1, at = 1:13, las = 2, labels = c("BEES", 
+                                              "DPES", 
+                                              "EQ", 
+                                              "EQ aff", 
+                                              "EQ cog", 
+                                              "IECA", 
+                                              "IRI", 
+                                              "IRI ec", 
+                                              "IRI pd", 
+                                              "IRI pt", 
+                                              "PES", 
+                                              "QMEE", 
+                                              "TEQ"))
+title("Estimated Average Effects based on the Additive Model")
+
+
+# Measure type - state
+# --------------------
+
+# select specific values from data
+dat_emp_measure_state <- filter(dat_emp, Measure == "state")
+
+# concatenate values
+meas_stateTag <- levels(unique(dat_emp_measure_state$Measure_type_full, incomparables = FALSE))
+meas_stateTag
+
+# fit separate models within each level & create necessary dummy variables
+for (i in 1:length(meas_stateTag))
+{
+  rma(yi = r, vi = var_r, data = dat_emp_measure_state, subset = (Measure_type_full == meas_stateTag[i]))
+  columnName <- paste("meas_typ",meas_stateTag[i], sep=".")
+  dat_emp_measure_state[columnName] <- ifelse(dat_emp_measure_state$Measure_type_full == meas_stateTag[i], 1, 0)
+}
+
+# est. separate effects
+msep_measureState <- rma(yi = r, vi = var_r, mods = ~ factor(Measure_type_full) - 1, data = dat_emp_measure_state)
+msep_measureState
+
+# test moderator
+m_measureState <- rma(yi = r, vi = var_r, mods = ~ factor(Measure_type_full), data = dat_emp_measure_state)
+m_measureState
+
+
+# Measure type box plot
+
+# filter data
+dat_boxPlot_measState <- select(dat_emp_measure_state, id, Study, Year, r, Measure_type)
+
+# write to .csv
+write.csv(dat_boxPlot_measState, "importData_boxplot_FMemp_MeasState.csv")
+
+# load data
+boxPlot_measState <- read.csv("C:/Users/wease/Desktop/Ali/Ali_pubPaper/Rdata/importData_boxplot_FMemp_MeasState.csv", header = TRUE)
+
+# plot basic box plot
+#plot(r ~ Measure_type, boxPlot_measState, col = rainbow(length(unique(boxPlot_measState))), las = 2, xlab = "") # took out "Measure_type" on x-axis
+plot(r ~ Measure_type, boxPlot_measState, las = 2, xlab = "") # took out "Measure_type" on x-axis
+title("Estimated Average Effects for Each Moderator Level")
+
+
+# Test dif between levels
+
+# state emp (ECS, pain int, PANAS, PANAS neg, PANAS pos, self-report, self unp, STRAYER aff, STRAYER cog)
+
+# ECS & pain int
+anova(msep_measureType, L = c(0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+
+# ECS & PANAS
+anova(msep_measureType, L = c(0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+
+# ECS & PANAS neg
+anova(msep_measureType, L = c(0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0))
+
+# ECS & PANAS pos
+anova(msep_measureType, L = c(0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0))
+
+# ECS & self-report
+anova(msep_measureType, L = c(0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0))
+
+# ECS & self unp
+anova(msep_measureType, L = c(0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0))
+
+# ECS & STRAYER aff
+anova(msep_measureType, L = c(0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0))
+
+# ECS & STRAYER cog
+anova(msep_measureType, L = c(0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0))
+
+
+# pain int & PANAS
+anova(msep_measureType, L = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+
+# pain int & PANAS neg
+anova(msep_measureType, L = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0))
+
+# pain int & PANAS pos
+anova(msep_measureType, L = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0))
+
+# pain int & self-report
+anova(msep_measureType, L = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0))
+
+# pain int & self unp
+anova(msep_measureType, L = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0))
+
+# pain int & STRAYER aff
+anova(msep_measureType, L = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0))
+
+# pain int & STRAYER cog
+anova(msep_measureType, L = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0))
+
+
+# PANAS & PANAS neg
+anova(msep_measureType, L = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, -1, 0, 0, 0, 0, 0, 0, 0, 0))
+
+# PANAS & PANAS pos
+anova(msep_measureType, L = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 0, 0, 0, 0))
+
+# PANAS & self-report
+anova(msep_measureType, L = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, 0))
+
+# PANAS & self unp
+anova(msep_measureType, L = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, -1, 0, 0, 0))
+
+# PANAS & STRAYER aff
+anova(msep_measureType, L = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, -1, 0, 0))
+
+# PANAS & STRAYER cog
+anova(msep_measureType, L = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, -1, 0))
+
+
+# PANAS neg & PANAS pos
+anova(msep_measureType, L = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, -1, 0, 0, 0, 0, 0, 0, 0))
+
+# PANAS neg & self-report
+anova(msep_measureType, L = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 0, 0))
+
+# PANAS neg & self unp
+anova(msep_measureType, L = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0))
+
+# PANAS neg & STRAYER aff
+anova(msep_measureType, L = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, -1, 0, 0))
+
+# PANAS neg & STRAYER cog
+anova(msep_measureType, L = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, -1, 0))
+
+
+# PANAS pos & self-report
+anova(msep_measureType, L = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0))
+
+# PANAS pos & self unp
+anova(msep_measureType, L = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 0))
+
+# PANAS pos & STRAYER aff
+anova(msep_measureType, L = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0))
+
+# PANAS pos & STRAYER cog
+anova(msep_measureType, L = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, -1, 0))
+
+
+# self-report & self unp
+anova(msep_measureType, L = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, -1, 0, 0, 0))
+
+# self-report & STRAYER aff
+anova(msep_measureType, L = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, -1, 0, 0))
+
+# self-report & STRAYER cog
+anova(msep_measureType, L = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0))
+
+
+# self unp & STRAYER aff
+anova(msep_measureType, L = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, -1, 0, 0))
+
+# self unp & STRAYER cog
+anova(msep_measureType, L = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, -1, 0))
+
+
+# STRAYER aff & STRAYER cog
+anova(msep_measureType, L = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, -1, 0))
+
+
+# Measure Type line plot
+
+plot(coef(msep_measureType)[1:9], type = "o", pch = 19, ylim = c(-0.2, 0.6), xlab = "", ylab = "Standardized Mean Difference", xaxt = "n", bty = "l")
+axis(side = 1, at = 1:9, las = 2, labels = c("ECS", 
+                                              "Pain int", 
+                                              "PANAS", 
+                                              "PANAS neg", 
+                                              "PANAS pos", 
+                                              "Self-report", 
+                                              "Self unp", 
+                                              "SEC aff", 
+                                              "SEC cog"))
+title("Estimated Average Effects based on the Additive Model")
+
+
+
+# Prime type
+# ----------
+
+# calculate number of studies with specific values
+dat_emp %>% filter(Prime_type == "high emp") %>% distinct(id)
+dat_emp %>% filter(Prime_type == "low emp") %>% distinct(id)
+
+# select specific values from data
+dat_emp_prime_type <- filter(dat_emp, Prime_type != "NA")
+
+# concatenate values
+primetypTag <- levels(unique(dat_emp_prime_type$Prime_type, incomparables = FALSE))
+
+# fit separate models within each level & create necessary dummy variables
+for (i in 1:length(primetypTag))
+{
+  rma(yi = r, vi = var_r, data = dat_emp_prime_type, subset = (Prime_type == primetypTag[i]))
+  columnName <- paste("prime_typ",primetypTag[i], sep=".")
+  dat_emp_prime_type[columnName] <- ifelse(dat_emp_prime_type$Prime_type == primetypTag[i], 1, 0)
+}
+
+# est. separate effects
+msep_primeType <- rma(yi = r, vi = var_r, mods = ~ factor(Prime_type) - 1, data = dat_emp_prime_type)
+msep_primeType
+
+# test moderator
+m_primeType <- rma(yi = r, vi = var_r, mods = ~ factor(Prime_type), data = dat_emp_prime_type)
+m_primeType
+
+
+# Prime type box plot
+
+# filter data
+dat_boxPlot_primeType <- select(dat_emp, id, Study, Year, r, Prime_type)
+
+# write to .csv
+write.csv(dat_boxPlot_primeType, "importData_boxplot_FMemp_primeType.csv")
+
+# load data
+boxPlot_primeType <- read.csv("C:/Users/wease/Desktop/Ali/Ali_pubPaper/Rdata/importData_boxplot_FMemp_primeType.csv", header = TRUE)
+
+# plot basic box plot
+plot(r ~ Prime_type, boxPlot_primeType, xlab = "Prime Type")
+title("Estimated Average Effects for Each Moderator Level")
+
+
+# Test dif between levels
+
+# high emp & low emp
+#anova(msep_primeType, L = c(1, -1))
+
+# Prime line plot
+#plot(coef(msep_primeType)[1:2], type = "o", pch = 19, ylim = c(0, 0.3), xlab = "Prime", ylab = "Standardized Mean Difference", xaxt = "n", bty = "l")
+#axis(side = 1, at = 1:2, labels = c("High empathy","Low Empathy"))
+#title("Estimated Average Effects based on the Additive Model")
+
+
+# Measure emo vs. cog
+# -------------------------------------
+
+# filter IRI ec, IRI pt, EQ aff, EQ cog & QMEE
+emoCog <- c("IRI ec", "IRI pt", "EQ aff", "EQ cog", "QMEE")
+dat_emoCog <- filter(dat_emp, Measure_type %in% emoCog)
+
+# copy column and rename measure types to emo and cog
+dat_emoCog$Measure_type <- as.character(dat_emoCog$Measure_type)
+class(dat_emoCog$Measure_type)
+
+dat_emoCog$Measure_type[dat_emoCog$Measure_type == "IRI ec"] <- "emotion"
+dat_emoCog$Measure_type[dat_emoCog$Measure_type == "EQ aff"] <- "emotion"
+dat_emoCog$Measure_type[dat_emoCog$Measure_type == "QMEE"] <- "emotion"
+dat_emoCog$Measure_type[dat_emoCog$Measure_type == "IRI pt"] <- "cognitive"
+dat_emoCog$Measure_type[dat_emoCog$Measure_type == "EQ cog"] <- "cognitive"
+
+# calculate number of studies and number of values with specific values
+dat_emoCog %>% filter(Measure_type == "emotion") %>% distinct(id)
+dat_emoCog %>% filter(Measure_type == "cognitive") %>% distinct(id)
+table(dat_emoCog$Measure_type)
+
+# concatenate values
+emoCogtTag <- levels(unique(dat_emoCog$Measure_type, incomparables = FALSE))
+
+# fit separate models within each level & create necessary dummy variables
+for (i in 1:length(emoCogtTag))
+{
+  rma(yi = r, vi = var_r, data = dat_emoCog, subset = (Measure_type == emoCogtTag[i]))
+  columnName <- paste("iriEmoCog",emoCogtTag[i], sep=".")
+  dat_emoCog[columnName] <- ifelse(dat_emoCog$Measure_type == emoCogtTag[i], 1, 0)
+}
+
+# est. separate effects
+msep_emoCog <- rma(yi = r, vi = var_r, mods = ~ factor(Measure_type) - 1, data = dat_emoCog)
+msep_emoCog
+
+# test moderator
+m_emoCog <- rma(yi = r, vi = var_r, mods = ~ factor(Measure_type), data = dat_emoCog)
+m_emoCog
+
+
+# emo vs. cog box plot
+
+# filter data
+dat_boxPlot_emoCog <- select(dat_emoCog, id, Study, Year, r, Measure_type)
+
+# write to .csv
+write.csv(dat_boxPlot_emoCog, "importData_boxplot_FMemp_emoCog.csv")
+
+# load data
+boxPlot_emoCog <- read.csv("C:/Users/wease/Desktop/Ali/Ali_pubPaper/Rdata/importData_boxplot_FMemp_IRI_ec_pt.csv", header = TRUE)
+
+# plot basic box plot
+plot(r ~ emo_cog, boxPlot_emoCog, xlab = "cognitive vs. emotion")
+title("Estimated Average Effects for Each Moderator Level")
+
+
+# Test dif between levels
+
+# IRI ec (emo) & IRI pt (cog)
+#anova(msep_iriEmoCog, L = c(1, -1))
+
+# IRI ec (emo) & IRI pt (cog) line plot
+#plot(coef(msep_iriEmoCog)[1:2], type = "o", pch = 19, ylim = c(-0.1, 0), xlab = "IRI ec (emo) vs. IRI pt (cog)", ylab = "Standardized Mean Difference", xaxt = "n", bty = "l")
+#axis(side = 1, at = 1:2, labels = c("IRI ec (emo)","IRI pt (cog)"))
+#title("Estimated Average Effects based on the Additive Model")
+
+
+# -----------------------------
+# Confounding mods for FM x Emp  
+# -----------------------------
+
+# Muscles & Gender
+# ----------------
+
+# fit model
+#m_muscGen <- rma(yi = r, vi = var_r, mods = ~ factor(Muscle) + factor(Gender), data = dat_emp_gender_mf, method = "ML")
+#m_muscGen
+
+# tests whether Muscle is significant while controlling for influence of Gender
+#anova(m_muscGen, btt = 2) 
+
+# tests whether Gender is significant while controlling for influence of Muscle
+#anova(m_muscGen, btt = 3) 
+
+
+# Muscles & Emotions
+# ------------------
+
+# fit model
+m_muscEmos <- rma(yi = r, vi = var_r, mods = ~ factor(Muscle) + factor(Emotion), data = dat_emp, method = "ML")
+m_muscEmos
+
+# tests whether Muscle is significant while controlling for influence of Emotion
+anova(m_muscEmos, btt = 2:4) 
+
+# tests whether Emotion is significant while controlling for influence of Muscle
+anova(m_muscEmos, btt = 5:9) 
+
+
+# Muscles & Emotions - neg
+# ------------------------
+
+# fit model
+m_muscEmos <- rma(yi = r, vi = var_r, mods = ~ factor(Muscle) + factor(Emotion), data = dat_emp_musc_neg, method = "ML")
+m_muscEmos
+
+# tests whether Muscle is significant while controlling for influence of Emotion
+anova(m_muscEmos, btt = 2:3) 
+
+# tests whether Emotion is significant while controlling for influence of Muscle
+anova(m_muscEmos, btt = 4:7) 
+
+
+# Muscles & Stimuli
+# -----------------
+
+# fit model
+m_muscStim <- rma(yi = r, vi = var_r, mods = ~ factor(Muscle) + factor(Stimuli), data = dat_emp, method = "ML")
+m_muscStim
+
+# tests whether Muscle is significant while controlling for influence of Stimuli
+anova(m_muscStim, btt = 2:4) 
+
+# tests whether Stimuli is significant while controlling for influence of Muscle
+anova(m_muscStim, btt = 5) 
+
+
+# Muscles & Measure type
+# ----------------------
+
+# fit model
+m_muscMeasType <- rma(yi = r, vi = var_r, mods = ~ factor(Muscle) + factor(Measure_type), data = dat_emp, method = "ML")
+m_muscMeasType
+
+# tests whether Muscle is significant while controlling for influence of Measure Type
+anova(m_muscMeasType, btt = 2:4) 
+
+# tests whether Measure Type is significant while controlling for influence of Muscle
+anova(m_muscMeasType, btt = 5:25) 
+
+
+# Muscles & Measure trait
+# -----------------------
+
+# fit model
+m_muscMeasTrait <- rma(yi = r, vi = var_r, mods = ~ factor(Muscle) + factor(Measure_type), data = dat_emp_measure_trait, method = "ML")
+m_muscMeasTrait
+
+# tests whether Muscle is significant while controlling for influence of Measure Type
+anova(m_muscMeasTrait, btt = 2:4) 
+
+# tests whether Measure Type is significant while controlling for influence of Muscle
+anova(m_muscMeasTrait, btt = 5:16) 
+
+
+# Emotion & Stimuli
+# -----------------
+
+# fit model
+m_emoStim <- rma(yi = r, vi = var_r, mods = ~ factor(Emotion) + factor(Stimuli), data = dat_emp, method = "ML")
+m_emoStim
+
+# tests whether Emotion is significant while controlling for influence of Stimuli
+anova(m_emoStim, btt = 2:6) 
+
+# tests whether Stimuli is significant while controlling for influence of Emotion
+anova(m_emoStim, btt = 7) 
+
+
+# Emotion - neg & Stimuli
+# -----------------------
+
+# fit model
+m_emoNegStim <- rma(yi = r, vi = var_r, mods = ~ factor(Emotion) + factor(Stimuli), data = dat_emp_emo_neg, method = "ML")
+m_emoNegStim
+
+# tests whether Emotion valence is significant while controlling for influence of Stimuli
+anova(m_emoNegStim, btt = 2:5) 
+
+# tests whether Stimuli is significant while controlling for influence of Emotion valence
+anova(m_emoNegStim, btt = 6) 
+
+
+# -----------------------
+# Est ES for CS-ang x Emp
+# -----------------------
+
+
+# filter emp data
+# ---------------
+
+# calculate number of studies with specific values
+dat_emp %>% filter(Muscle == "CS") %>% distinct(id)
+
+# select specific rows
+dat_CSang_emp <- filter(dat_emp, Muscle == "CS", Emotion == "ang")
+
+# write to .csv
+write.csv(dat_CSang_emp, "chosenData_CSangEmp.csv")
+
+
+# aggregate ES for FM x Emp
+# -------------------------
+
+# select specific columns
+dat_CSang_emp_agg <- select(dat_CSang_emp, id, r, n)
+
+# compute aggregated ES for each study
+agg_CSang_emp <- agg(id, r, n, cor = .50, mod = NULL, data = dat_CSang_emp_agg)
+
+# compute variance of correlation coef (r) and add variance column to data results
+var_r_funcAggCSAngEmp <- var_r(agg_CSang_emp$r, agg_CSang_emp$n)
+agg_CSang_emp$var_r <- var_r_funcAggCSAngEmp
+
+# select columns Study and Year from original data
+Study_Year_CSangEmp_all <- select(dat_CSang_emp, Study, Year)
+
+# remove duplicate rows 
+Study_Year_CSang_emp <- distinct(Study_Year_CSangEmp_all)
+
+# merge columns Study and Year with aggregated data results
+agg_CSangEmp_Results <- bind_cols(Study_Year_CSang_emp, agg_CSang_emp)
+
+# write to .csv
+write.csv(agg_CSangEmp_Results, "dataResults_CSangEmp.csv")
+
+
+# Est ES
+# ------
+
+# Random effects meta-regression
+
+# compute est. summary effect
+m0agg_CSangEmp <- mareg(r ~ 1, var = var_r, method = "REML", data = agg_CSang_emp)
+summary(m0agg_CSangEmp)
+
+# heterogeneity
+het_m0agg_CSangEmp <- confint(m0agg_CSangEmp, digist = 2)
+het_m0agg_CSangEmp
+
