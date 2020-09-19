@@ -15,6 +15,7 @@
 ## 3. Calculate the summary (overall) effect size and heterogeneity
 ## 4. Check for publication bias and outliers in your data
 ## 5. Conduct a moderator analysis to see which factors influence the summary effect size
+## 6. Actual code from published paper
 
 ## Published paper 'Facial mimicry, empathy, and emotion recognition: A meta-analysis of correlations' (Authors: Holland, A., O'Connell, G., Dziobek, I., 2020) can be found here: https://doi.org/10.1080/02699931.2020.1815655
 
